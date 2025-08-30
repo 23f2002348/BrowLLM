@@ -1,9 +1,9 @@
-// Minimal tool definitions
+// Enhanced tool definitions for better automatic triggering
 
 export const tools = [
   {
     name: "google_search",
-    description: "Search the web using Google Custom Search API and return snippets",
+    description: "Search the web for current information, news, facts, or any topic the user asks about. Use this when the user asks questions that require up-to-date information or general knowledge searches.",
     parameters: {
       type: "object",
       properties: {
@@ -24,7 +24,7 @@ export const tools = [
   },
   {
     name: "ai_pipe",
-    description: "Call an AI Pipe proxy endpoint",
+    description: "Call an AI workflow or pipeline endpoint for complex AI tasks like text analysis, data processing, or chained AI operations.",
     parameters: {
       type: "object",
       properties: {
@@ -34,14 +34,18 @@ export const tools = [
       required: ["endpoint","payload"]
     },
     run: async ({ endpoint, payload }) => {
-      const res = await fetch(endpoint, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
+      const res = await fetch(endpoint, { 
+        method:"POST", 
+        headers:{ "Content-Type":"application/json" }, 
+        body: JSON.stringify(payload) 
+      });
       if (!res.ok) throw new Error(`AI Pipe error ${res.status}`);
       return await res.json();
     }
   },
   {
     name: "js_exec",
-    description: "Run sandboxed JS code",
+    description: "Execute JavaScript code to perform calculations, data processing, or any computational task. Use this when the user needs calculations, data manipulation, or code execution.",
     parameters: {
       type: "object",
       properties: {
@@ -51,10 +55,11 @@ export const tools = [
     },
     run: async ({ code }) => {
       try {
-        const fn = new Function(`"use strict"; ${code}`);
-        return fn();
+        const fn = new Function(`"use strict"; return (${code})`);
+        const result = fn();
+        return typeof result === 'object' ? result : { result };
       } catch (err) {
-        throw new Error("JS error: " + err.message);
+        throw new Error("JS execution error: " + err.message);
       }
     }
   }

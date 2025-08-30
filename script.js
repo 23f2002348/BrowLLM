@@ -45,33 +45,40 @@ async function callLLM() {
     });
 
     const data = await res.json();
-    if (data.error) {
-      throw new Error(data.error.message);
-    }
-    if (!data.choices || !data.choices[0]) {
-      throw new Error("No response from model");
-    }
-    
+    if (data.error) throw new Error(data.error.message);
+    if (!data.choices || !data.choices[0]) throw new Error("No response from model");
+
     const msg = data.choices[0].message;
 
     if (msg.tool_calls) {
+      // Always push assistant with tool_calls
+      messages.push({
+        role: "assistant",
+        content: msg.content || null,
+        tool_calls: msg.tool_calls
+      });
+
+      if (msg.content) showMessage("assistant", msg.content);
+
+      // Execute tools
       for (let tc of msg.tool_calls) {
         const tool = tools.find(t => t.name === tc.function.name);
         try {
           const result = await tool.run(JSON.parse(tc.function.arguments));
           messages.push({
             role: "tool",
-            tool_call_id: tc.id,             // required by API
+            tool_call_id: tc.id,
             content: JSON.stringify(result)
           });
           showMessage("tool", JSON.stringify(result));
         } catch (err) {
           showError(err.message);
+          return;
         }
       }
-      return callLLM(); // loop until LLM stops calling tools
+      return callLLM();
     } else {
-      messages.push({ role:"assistant", content:msg.content });
+      messages.push({ role: "assistant", content: msg.content });
       showMessage("assistant", msg.content);
     }
   } catch (err) {
